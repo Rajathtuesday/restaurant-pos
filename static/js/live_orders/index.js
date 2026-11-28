@@ -73,7 +73,7 @@ const loader = createOrdersLoader({
 
 function poll() {
   if (busy || document.hidden || OrderEdit.sheetOpen()) return;
-  loader.refresh();
+  loader.poll();
 }
 
 function findItem(button) {

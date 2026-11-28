@@ -147,10 +147,40 @@ test("the connection down says so", async () => {
   assert.deepEqual(seen.failures, ["Check the connection."]);
 });
 
-test("a login page instead of JSON asks to sign in again", async () => {
+test("a page that is not Rasova's data says to check the connection", async () => {
   const { loader, seen } = loaderWith([reply(200, undefined)]);
   await loader.refresh();
-  assert.deepEqual(seen.failures, ["Please sign in again."]);
+  assert.deepEqual(seen.failures, ["Check the connection."]);
+});
+
+test("the sign-in page after a redirect is signed out: the notice, and no more asking", async () => {
+  const signedOut = [];
+  const signIn = { ...reply(200, undefined), redirected: true, url: "https://spice.rasova.net/login/?next=/order/7/data/" };
+  const fetchFn = scriptedFetch([signIn]);
+  const loader = createOrderLoader({
+    fetchFn, url: URLS.data, onOrder: () => assert.fail("nothing to draw"),
+    onFailure: () => assert.fail("not a failure"), onSignedOut: () => signedOut.push(true),
+  });
+  assert.equal(await loader.refresh(), false);
+  assert.equal(await loader.poll(), false);
+  assert.equal(fetchFn.calls.length, 1);
+  assert.deepEqual(signedOut, [true]);
+});
+
+test("a newer answer is drawn while an even newer read is still out", async () => {
+  const waiting = [];
+  const seen = [];
+  const loader = createOrderLoader({
+    fetchFn: () => new Promise((resolve) => waiting.push(resolve)), url: URLS.data,
+    onOrder: (o) => seen.push(o.total), onFailure: () => {},
+  });
+  const a = loader.refresh();
+  const b = loader.refresh();
+  waiting[0](reply(200, { subtotal: 1, gst: 0, total: 1, items: [dish(1, "served")] }));
+  assert.equal(await a, true);
+  waiting[1](reply(200, { subtotal: 2, gst: 0, total: 2, items: [dish(1, "served")] }));
+  assert.equal(await b, true);
+  assert.deepEqual(seen, [1, 2]);
 });
 
 test("an answer with no list of dishes is a failure, not an empty order", async () => {

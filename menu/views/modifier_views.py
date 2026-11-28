@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 
 from core.decorators import tenant_required, feature_required, role_required
+from core.offline_copy import keep_offline
 from menu.models import MenuItem, MenuItemModifierGroup, ModifierGroup, Modifier
 from inventory.models import InventoryItem, ModifierRecipe
 from inventory.recipe_service import RecipeUnitMismatchError, upsert_modifier_recipe
@@ -64,7 +65,9 @@ def menu_item_modifiers(request, item_id):
                 for m in group.modifiers.filter(is_active=True)
             ],
         })
-    return JsonResponse({"groups": data})
+    # Billing asks for these when a dish is tapped; kept by the service
+    # worker, a dish with options can still be added offline.
+    return keep_offline(JsonResponse({"groups": data}))
 
 
 @login_required

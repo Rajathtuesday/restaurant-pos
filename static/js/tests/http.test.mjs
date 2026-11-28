@@ -27,6 +27,24 @@ test("a good answer comes back as data, with CSRF and JSON headers", async () =>
   assert.equal(ui.calls.loading, 0, "the loading bar was taken down again");
 });
 
+test("every call says it comes from a script, so a signed-out answer is a 401, not the sign-in page", async () => {
+  const { api, fetchFn } = client([reply(200, { success: true })]);
+  await api.post("/x/", {});
+  assert.equal(fetchFn.calls[0].options.headers["X-Requested-With"], "XMLHttpRequest");
+});
+
+test("signed out: the page's notice, not a toast that goes away, and the call throws", async () => {
+  let notices = 0;
+  const { api, ui } = client(
+    [reply(401, { error: "You're signed out. Sign in again to carry on.", signed_out: true })],
+    { onSignedOut: () => { notices += 1; } },
+  );
+  await assert.rejects(api.post("/pay/1/", {}), /Signed out/);
+  assert.equal(notices, 1);
+  assert.deepEqual(ui.calls.toast, []);
+  assert.equal(ui.calls.loading, 0);
+});
+
 test("offline: refused before any request, with a toast", async () => {
   const { api, ui, fetchFn } = client([], { isOnline: () => false });
   await assert.rejects(api.get("/x/"), /Offline/);

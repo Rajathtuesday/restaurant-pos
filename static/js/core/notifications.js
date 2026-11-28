@@ -4,7 +4,13 @@
  * stock alerts there are. New ones get a toast (and a beep for a QR order,
  * a vibration on a phone, a browser notification when allowed); the badges
  * on the header icons show the counts.
+ *
+ * Signed out (core/signed_out.js), it shows the page's notice and stops:
+ * it used to follow the redirect to the sign-in page, fail to read it, and
+ * go on asking once a minute for hours with the badges frozen (28 Nov 2026).
  */
+import { knownSignedOut, showSignedOut, signedOut } from "./signed_out.js";
+
 const URL = "/api/notifications/";
 
 /* A short two-tone beep through the Web Audio API: nothing to ship. Browsers
@@ -47,6 +53,8 @@ export function createNotificationPoller({
   nav = globalThis.navigator,
   interval = 8000,
   onData = () => {},
+  onSignedOut = () => showSignedOut(),
+  pageSignedOut = () => knownSignedOut(doc),
 } = {}) {
   // -1 means "not seen yet": the first poll sets the badges without toasting
   // everything that was already there.
@@ -55,6 +63,12 @@ export function createNotificationPoller({
   let prevQr = -1;
   let prevSystem = -1;
   let timer = null;
+  let signedOff = false;
+
+  function stop() {
+    if (timer) clearInterval(timer);
+    timer = null;
+  }
 
   function badge(baseId, count) {
     for (const id of [baseId, baseId + "-mobile"]) {
@@ -75,8 +89,19 @@ export function createNotificationPoller({
 
   async function poll() {
     // Never crash the POS over a notification: a failed poll is skipped.
+    if (!signedOff && pageSignedOut()) {
+      signedOff = true;               // another script on the page found out first
+      stop();
+    }
+    if (signedOff) return;
     try {
       const res = await fetchFn(URL, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+      if (signedOut(res)) {
+        signedOff = true;
+        stop();
+        onSignedOut();
+        return;
+      }
       if (!res.ok) return;
       const data = await res.json();
       // Anything else the answer carries (the printing state) goes to
@@ -144,9 +169,6 @@ export function createNotificationPoller({
       poll();
       timer = setInterval(poll, interval);
     },
-    stop() {
-      if (timer) clearInterval(timer);
-      timer = null;
-    },
+    stop,
   };
 }

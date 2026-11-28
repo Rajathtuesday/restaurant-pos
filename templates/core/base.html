@@ -82,6 +82,13 @@
     {# core.decorators.to_own_restaurant: a page opened at another restaurant's address #}
     <div class="moved-note" role="status">That address belongs to another restaurant. You're signed in to {{ user.tenant.name }}, so here is {{ user.tenant.name }}.</div>
     {% endif %}
+    {% if user.is_authenticated %}
+    {# Shown by static/js/core/signed_out.js when the server answers a script with 401: the session ended, or someone signed out in another tab. #}
+    <div class="signed-out-note" role="alert" data-signed-out hidden>
+        <span>You're signed out, so this screen has stopped updating.</span>
+        <a class="btn-luxury text-decoration-none" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">Sign in again</a>
+    </div>
+    {% endif %}
     <main class="flex-grow-1 d-flex flex-column">
         {% block content %}{% endblock %}
     </main>

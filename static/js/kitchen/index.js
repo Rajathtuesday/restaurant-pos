@@ -55,5 +55,5 @@ delegate(document.body, {
 
 onReady(() => {
   loader.refresh();
-  setInterval(() => loader.refresh(), data.poll_ms || 5000);
+  setInterval(() => loader.poll(), data.poll_ms || 5000);
 });

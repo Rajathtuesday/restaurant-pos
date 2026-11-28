@@ -205,6 +205,9 @@ MIDDLEWARE = [
     'core.db_limits.SlowQueryMiddleware',
     'core.middleware.NoStoreForAuthenticatedResponsesMiddleware',
     'core.middleware.RequestLoggingMiddleware',
+    # A signed-out page's script gets 401, not the sign-in page. Under the
+    # line above, so the log shows the 401 that was sent.
+    'core.middleware.SignedOutScriptMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'

@@ -242,6 +242,18 @@ body {
     border-left: 3px solid var(--gold-text);
 }
 
+/* Signed out while the screen was open (core/signed_out.js): over everything,
+   at the top, so a kitchen or floor screen cannot go on looking current.
+   display is set only when shown: a display rule on the class itself would
+   beat the hidden attribute. */
+.signed-out-note:not([hidden]) {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 2000;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.6rem 1rem;
+    padding: 0.75rem 1rem; font-size: 0.95rem; color: var(--text-main);
+    background: var(--panel-bg); border-bottom: 2px solid var(--danger);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
 /* A list with nothing in it yet (core/_empty_state.html, core/empty_state.js). */
 .rv-empty {
     text-align: center; padding: 3.5rem 1.5rem; margin: 1rem auto; max-width: 34rem;

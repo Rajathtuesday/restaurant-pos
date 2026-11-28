@@ -127,11 +127,72 @@ test("a refusal is a failure with the server's words, never an empty board", asy
   assert.deepEqual(seen.failures, ["Could not load the kitchen display. Please try again."]);
 });
 
-test("a login page or an error page instead of JSON says so", async () => {
+test("a page that is not Rasova's data (a Wi-Fi portal), or an error page, says so", async () => {
   const { loader, seen } = loaderWith([reply(200, undefined), reply(502, undefined)]);
   await loader.refresh();
   await loader.refresh();
-  assert.deepEqual(seen.failures, ["Please sign in again.", "Server error (502)."]);
+  assert.deepEqual(seen.failures, ["Check the connection.", "Server error (502)."]);
+});
+
+test("signed out, the notice is shown once and the board stops asking", async () => {
+  const signedOut = [];
+  const fetchFn = scriptedFetch([reply(401, { error: "You're signed out. Sign in again to carry on.", signed_out: true })]);
+  const seen = { kots: [], failures: [] };
+  const loader = createKitchenLoader({
+    fetchFn, url: URLS.kitchen_data,
+    onKots: (k) => seen.kots.push(k), onFailure: (m) => seen.failures.push(m),
+    onSignedOut: () => signedOut.push(true),
+  });
+  assert.equal(await loader.refresh(), false);
+  assert.equal(await loader.poll(), false);
+  assert.equal(await loader.setStation("Bar"), false);
+  assert.equal(fetchFn.calls.length, 1, "nothing more is asked once signed out");
+  assert.deepEqual(signedOut, [true]);
+  assert.deepEqual(seen, { kots: [], failures: [] }, "the board is not told to fail: the notice says it all");
+});
+
+test("a slow link: an answer is drawn even while a newer read is on its way", async () => {
+  // 28 Nov 2026: every answer said the whisky was ready, but each was
+  // dropped because the next 5-second read had already gone out, so the
+  // board showed Ready for seconds and the cook tapped it twice more.
+  const waiting = [];
+  const fetchFn = () => new Promise((resolve) => waiting.push(resolve));
+  const drawn = [];
+  const loader = createKitchenLoader({ fetchFn, url: URLS.kitchen_data, onKots: (k) => drawn.push(k[0].items[0].status), onFailure: () => {} });
+  const afterTap = loader.refresh();              // asked after the Ready tap
+  const nextTick = loader.refresh();              // the timer asks again before the answer came
+  waiting[0](reply(200, { kots: [kot(1, 1, [item(1, "ready")])] }));
+  assert.equal(await afterTap, true, "the answer to the read after the tap is drawn");
+  waiting[1](reply(200, { kots: [kot(1, 1, [item(1, "ready")])] }));
+  assert.equal(await nextTick, true);
+  assert.deepEqual(drawn, ["ready", "ready"]);
+});
+
+test("the timer does not pile reads onto a slow link, but a hung read does not stop it", async () => {
+  let clock = 0;
+  const waiting = [];
+  const fetchFn = () => new Promise((resolve) => waiting.push(resolve));
+  const loader = createKitchenLoader({ fetchFn, url: URLS.kitchen_data, onKots: () => {}, onFailure: () => {}, now: () => clock });
+  const first = loader.poll();
+  clock = 5000;
+  assert.equal(await loader.poll(), false, "one read is still on its way: the timer waits");
+  assert.equal(waiting.length, 1);
+  clock = 20000;
+  const second = loader.poll();                   // the first has hung past patience
+  assert.equal(waiting.length, 2);
+  waiting[1](reply(200, { kots: [] }));
+  assert.equal(await second, true);
+  waiting[0](reply(200, { kots: [] }));
+  assert.equal(await first, false, "the hung read's late answer is older than the one drawn");
+});
+
+test("a tap is always asked for at once, even with a read on its way", async () => {
+  const waiting = [];
+  const fetchFn = () => new Promise((resolve) => waiting.push(resolve));
+  const loader = createKitchenLoader({ fetchFn, url: URLS.kitchen_data, onKots: () => {}, onFailure: () => {} });
+  loader.poll();
+  loader.refresh();
+  assert.equal(waiting.length, 2);
 });
 
 test("the connection being down says to check it", async () => {
@@ -184,12 +245,15 @@ test("a second tap while the first is on its way is ignored", async () => {
   assert.equal(api.posts.length, 1);
 });
 
-test("a refusal leaves the board as it was", async () => {
+test("a refusal asks for the board again: the button tapped was most likely stale", async () => {
+  // 28 Nov 2026: a board a few seconds behind kept a Ready button on a
+  // whisky already ready, and the cook tapped it twice more.
   const api = fakeApi([new Error("Item not found")]);
   const { actions, refreshed } = actionsWith(api);
   assert.equal(await actions.ready(11), false);
-  assert.equal(refreshed(), 0);
+  assert.equal(refreshed(), 1);
   assert.equal(await actions.ready(11), true, "the dish can be tapped again after a refusal");
+  assert.equal(refreshed(), 2);
 });
 
 test("clear all asks first, and says how many were cleared", async () => {

@@ -24,6 +24,10 @@ static/js/core/      what base.html runs on every page
   toast.js           createUi: toast, confirm, ask (one line of text: never prompt()), showLoading, hideLoading (wraps SweetAlert2)
   theme.js           dark and light
   notifications.js   the 8-second poll and the header badges
+  live_feed.js       the one reader every live screen uses (kitchen, floor, an order, live orders, today's numbers, billing's Active panel):
+                     an answer is shown when it was asked after what is on screen; poll() waits for a read on its
+                     way, refresh() asks now, restart() drops older answers; signed out it stops
+  signed_out.js      a 401 means signed out: shows base.html's notice once; every poller on the page then stops
   platform.js        where Rasova runs; the Android print bridge
   pwa.js             service worker registration, the install banner, the printing sheet
   checklist.js       the setup checklist in the corner
@@ -44,12 +48,12 @@ static/js/billing/   the billing screen: one module for the dine-in screen, the 
   index.js           reads page-data, handles every data-action, wires the pieces below
   cart.js, parcel.js, dispatch.js, counter.js, running_order.js, menu.js, printing.js, tokens.js, ui.js, urls.js
 static/js/bill/      the bill page: payment, discounts, printing, the Razorpay QR (phase 2's first page)
-static/js/tables/    the floor plan: floor.js (the cards and sheets as markup), actions.js (what a tap asks the server), loader.js (the 5-second refresh), index.js
-static/js/kitchen/   the kitchen display: board.js (the tickets as markup), loader.js (the 5-second refresh, by station), actions.js (start, ready, bump, clear all), light.js (its own light switch), index.js; boot.js is a plain script in the head that sets light or dark before the first paint
-static/js/running_order/ one order's dishes (/order/<id>/): view.js (the cards and who gets which button), loader.js (the 3-second refresh, newest answer only), actions.js (serve, remove one, cancel, comp, cancel the order; a second tap is ignored), index.js
+static/js/tables/    the floor plan: floor.js (the cards and sheets as markup), actions.js (what a tap asks the server; a refusal redraws the floor), loader.js (the 5-second refresh, through core/live_feed.js), index.js
+static/js/kitchen/   the kitchen display: board.js (the tickets as markup), loader.js (the 5-second refresh, by station, through core/live_feed.js), actions.js (start, ready, bump, clear all), light.js (its own light switch), index.js; boot.js is a plain script in the head that sets light or dark before the first paint
+static/js/running_order/ one order's dishes (/order/<id>/): view.js (the cards and who gets which button), loader.js (the 3-second refresh, through core/live_feed.js), actions.js (serve, remove one, cancel, comp, cancel the order; a second tap is ignored), index.js
 static/js/dashboard/ the owner's dashboard: today.js (the minute's refresh of today's numbers), index.js (refresh, New Order, the Zomato and Swiggy switches)
 static/js/qr_menu/   the guest QR menu (on public_base.html): cart.js, modifiers.js (a dish's options), order.js (placing it, a second round, the request id), status.js (the pill and sheet), view.js (what it draws, escaped), index.js; boot.js sets dark mode before the first paint
-static/js/live_orders/ the live orders board: board.js (the tickets as markup, filters, search), loader.js (the 8-second refresh, newest answer only), index.js
+static/js/live_orders/ the live orders board: board.js (the tickets as markup, filters, search), loader.js (the 8-second refresh, through core/live_feed.js), index.js
 static/js/order_history/ order history's detail panel: detail.js (the panel as markup, escaped), index.js (open, refund form, approve and reject in Rasova's sheets, redraw by the order's id)
 static/js/setup/offers.js, offer_example.js  Setup, Offers: the form, Edit, and the example bill (offer_example.js, pure, the cart's own offer engine and tax sums)
 static/js/setup/stations.js, station_agent.js  Setup, Kitchen Stations: the station cards, print mode, remove in Rasova's sheet; station_agent.js is the print agent's WebSocket (status, Test Print, network scan)

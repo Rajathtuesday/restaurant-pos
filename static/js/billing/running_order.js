@@ -1,10 +1,15 @@
 /*
  * The "Active" panel: what is already on the order the screen is looking
  * at. Dine-in looks by table (the open or billing order on it); the counter
- * looks by order id. Polled every 5 seconds; a slow answer that arrives
- * after a newer one is thrown away, and a hung one gives up after 12
- * seconds and offers a retry, so the panel never spins forever.
+ * looks by order id. Polled every 5 seconds, through core/live_feed.js
+ * (the reader every live screen shares): an answer for the table the
+ * cashier already left is thrown away, a newer answer is drawn even while
+ * the next poll is out (it used to wait for the very latest, and on a slow
+ * link never drew), a hung one gives up after 12 seconds and offers a
+ * retry so the panel never spins forever, and signed out it says so and
+ * stops.
  */
+import { createLiveFeed } from "../core/live_feed.js";
 import { rupees } from "../core/money.js";
 import { esc } from "../order_edit.js";
 
@@ -92,10 +97,11 @@ export function createRunningOrder({
   onData = () => {},          // (data) => void: the screen updates its state from it
   timeoutMs = 12000,
   intervalMs = 5000,
+  ...feedOptions
 }) {
-  let requestId = 0;
   let timer = null;
   let query = null;           // { table } or { order }
+  let last = null;            // the answer drawn last
 
   function write(html) {
     containers.forEach((el) => {
@@ -103,48 +109,46 @@ export function createRunningOrder({
     });
   }
 
-  async function load() {
-    if (!query) return null;
-    const mine = ++requestId;
-    const controller = new AbortController();
-    const abortTimer = setTimeout(() => controller.abort(), timeoutMs);
-    const params = query.table ? "?table=" + encodeURIComponent(query.table) : "?order=" + encodeURIComponent(query.order);
-    try {
-      const r = await fetchFn(url + params, { signal: controller.signal });
-      const d = await r.json();
-      clearTimeout(abortTimer);
-      if (mine !== requestId) return null;   // a newer request answered first
+  const params = () => (query.table ? "?table=" + encodeURIComponent(query.table) : "?order=" + encodeURIComponent(query.order));
+  const feed = createLiveFeed({
+    ...feedOptions,
+    fetchFn,
+    address: () => url + params(),
+    timeout: timeoutMs,
+    onData: (d) => {
+      last = d;
       onData(d);
       write(render(d));
-      return d;
-    } catch (gone) {
-      clearTimeout(abortTimer);
-      if (mine !== requestId) return null;
-      write(ERROR_HTML);
-      return null;
-    }
-  }
+    },
+    onFailure: () => write(ERROR_HTML),
+  });
+
+  const hasQuery = () => Boolean(query && (query.table || query.order));
+  const answered = (drew) => (drew ? last : null);
 
   return {
     get query() {
       return query;
     },
-    /* Point the panel at a table or an order and load it. */
+    /* Point the panel at a table or an order and load it; answers for the
+       one it looked at before are dropped. */
     look(at) {
       query = at;
-      if (!at || (!at.table && !at.order)) {
-        requestId += 1;
+      if (!hasQuery()) {
+        feed.forget();
         write(SELECT_TABLE_HTML);
         return Promise.resolve(null);
       }
-      return load();
+      return feed.restart().then(answered);
     },
-    refresh: load,
+    refresh() {
+      return hasQuery() ? feed.refresh().then(answered) : Promise.resolve(null);
+    },
     showLoading() {
       write(LOADING_HTML);
     },
     start() {
-      if (!timer) timer = setInterval(load, intervalMs);
+      if (!timer) timer = setInterval(() => { if (hasQuery()) feed.poll(); }, intervalMs);
     },
     stop() {
       if (timer) clearInterval(timer);

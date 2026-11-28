@@ -200,8 +200,9 @@ def bump_kot(request, kot_id):
         bumped = 0
         for item in kot.items.filter(status__in=["sent", "preparing"]):
             try:
-                set_item_ready(request.user, item.id)
-                bumped += 1
+                # False when a Ready tap got there first (a dish already
+                # ready is done, not a failure: kitchen_service._should_move).
+                bumped += set_item_ready(request.user, item.id)
             except Exception as e:
                 # Partial success is by design (one bad item shouldn't block
                 # the rest), but a failure here used to be completely

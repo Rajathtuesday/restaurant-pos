@@ -168,3 +168,70 @@ test("a payment whose answer never arrived stays queued", async () => {
   await queue.flush();
   assert.equal((await queue.all()).length, 1, "we never guess whether an unconfirmed payment went through");
 });
+
+/* ---- signed out when the connection comes back (28 Nov 2026) -----------------
+ * A till whose session ended (or that was signed out in another tab) while
+ * it was offline: /create-order/ answers a signed-out till 401, and the
+ * order queue read that as "refused" and dropped the saved order; once the
+ * server answered every signed-out script with 401 the payment queue would
+ * have dropped saved cash the same way. Signed out is not a refusal: stop,
+ * keep everything, show the notice, and replay after signing in. */
+
+const SIGNED_OUT = () => reply(401, { error: "You're signed out. Sign in again to carry on.", signed_out: true });
+
+test("signed out, saved orders are kept, not dropped, and the flush stops", async () => {
+  let notices = 0;
+  const ui = fakeUi();
+  const fetchFn = scriptedFetch([SIGNED_OUT()]);
+  const queue = createOrderQueue({
+    store: memoryStore(), fetchFn, csrf: () => "tok", ui, isOnline: () => true,
+    onSignedOut: () => { notices += 1; },
+  });
+  await queue.add({ n: 1 });
+  await queue.add({ n: 2 });
+  await queue.flush();
+  assert.deepEqual((await queue.all()).map((r) => r.payload.n), [1, 2]);
+  assert.equal(fetchFn.calls.length, 1, "the second is not tried");
+  assert.equal(notices, 1);
+  assert.deepEqual(ui.calls.toast, [], "no 'please re-enter it'");
+});
+
+test("signed out, a saved cash payment is kept for after signing in", async () => {
+  let notices = 0;
+  const ui = fakeUi();
+  const fetchFn = scriptedFetch([SIGNED_OUT()]);
+  const queue = createPaymentQueue({
+    store: memoryStore(), fetchFn, csrf: () => "tok", ui, isOnline: () => true,
+    onSignedOut: () => { notices += 1; },
+  });
+  await queue.add(42, "250.00", "pay-1234-abcd");
+  await queue.flush();
+  assert.equal((await queue.all()).length, 1, "money is never dropped because a sign-in ended");
+  assert.equal(notices, 1);
+  assert.deepEqual(ui.calls.toast, []);
+});
+
+test("the sign-in page reached by a redirect is signed out too: nothing dropped", async () => {
+  const signIn = { ...reply(200, undefined), redirected: true, url: "https://spice.rasova.net/login/?next=/create-order/" };
+  const ui = fakeUi();
+  const queue = createOrderQueue({
+    store: memoryStore(), fetchFn: scriptedFetch([signIn]), csrf: () => "tok", ui, isOnline: () => true,
+    onSignedOut: () => {},
+  });
+  await queue.add({ n: 1 });
+  await queue.flush();
+  assert.equal((await queue.all()).length, 1);
+});
+
+test("signed in again, the kept order is replayed as normal", async () => {
+  const ui = fakeUi();
+  const fetchFn = scriptedFetch([SIGNED_OUT(), reply(200, { success: true, order_id: 7 }), reply(200, {})]);
+  const queue = createOrderQueue({
+    store: memoryStore(), fetchFn, csrf: () => "tok", ui, isOnline: () => true, onSignedOut: () => {},
+  });
+  await queue.add({ n: 1 });
+  await queue.flush();
+  await queue.flush();
+  assert.equal((await queue.all()).length, 0);
+  assert.equal(ui.calls.toast[0][0], "Order #7 synced and sent to kitchen");
+});

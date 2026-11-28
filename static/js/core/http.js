@@ -11,11 +11,19 @@
  * Offline, a request is refused up front with a toast: the screens that
  * can work offline (billing) queue their work in core/offline.js instead.
  *
+ * Signed out (the session ended, or someone signed out in another tab),
+ * the server answers 401: the page's signed-out notice is shown, not a
+ * toast that would go away (core/signed_out.js), and the call throws.
+ * Every call says it comes from a script (X-Requested-With), so the
+ * server knows to answer that way even without the browser's own
+ * Sec-Fetch headers.
+ *
  * `createClient` takes its dependencies as arguments so node can test the
  * behaviour with a fake fetch; app.js builds the real one.
  */
 import { send as approvalSend } from "../approval.js";
 import { csrfToken } from "./csrf.js";
+import { showSignedOut, signedOut } from "./signed_out.js";
 
 export function createClient({
   fetchFn = (...args) => globalThis.fetch(...args),
@@ -23,6 +31,7 @@ export function createClient({
   ui,
   approval = () => ({ send: approvalSend }),
   isOnline = () => globalThis.navigator.onLine,
+  onSignedOut = () => showSignedOut(),
 } = {}) {
   async function request(endpoint, options = {}) {
     if (!isOnline()) {
@@ -34,6 +43,7 @@ export function createClient({
     const headers = {
       "Content-Type": "application/json",
       "X-CSRFToken": csrf(),
+      "X-Requested-With": "XMLHttpRequest",
       ...options.headers,
     };
 
@@ -41,6 +51,11 @@ export function createClient({
       const send = (extra) => fetchFn(endpoint, { ...options, headers: { ...headers, ...extra } });
       const gate = approval();
       const response = gate ? await gate.send(send) : await send({});
+
+      if (signedOut(response)) {
+        onSignedOut();
+        throw new Error("Signed out");
+      }
 
       let data;
       try {

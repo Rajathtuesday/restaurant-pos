@@ -625,6 +625,64 @@ test("a slow answer for the table the cashier already left is thrown away", asyn
   assert.deepEqual(rig.seen, [{ order_id: 2 }]);
 });
 
+test("a newer answer for the same table is drawn while the next poll is still out", async () => {
+  // The panel used to draw only the answer to its very latest question: on a
+  // slow link the 5-second poll overtook every answer (28 Nov 2026).
+  const waiting = [];
+  const rig = panelRig(() => new Promise((resolve) => waiting.push(resolve)));
+  const looked = rig.running.look({ table: 4 });
+  const again = rig.running.refresh();
+  waiting[0](reply(200, { order_id: 8 }));
+  assert.deepEqual(await looked, { order_id: 8 });
+  assert.equal(rig.boxes[0].innerHTML, "order 8");
+  waiting[1](reply(200, { order_id: 8, items: [1] }));
+  await again;
+  assert.equal(rig.seen.length, 2);
+});
+
+test("a read that hangs gives up and offers a retry", async () => {
+  const hanging = (url, options) => new Promise((resolve, reject) => {
+    options.signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+  });
+  const boxes = [{ innerHTML: "" }];
+  const running = createRunningOrder({ url: URLS.running_order_items, containers: boxes, fetchFn: hanging, render: () => "x", timeoutMs: 20 });
+  assert.equal(await running.look({ table: 4 }), null);
+  assert.equal(boxes[0].innerHTML, ERROR_HTML);
+});
+
+test("a refusal is a retry, not drawn as if it were the order", async () => {
+  const rig = panelRig(scriptedFetch([reply(400, { error: "Table not found" })]));
+  await rig.running.look({ table: 99 });
+  assert.equal(rig.boxes[0].innerHTML, ERROR_HTML);
+  assert.deepEqual(rig.seen, [], "the screen's state is not fed an error");
+});
+
+test("signed out, the panel stops asking and the page's notice is shown", async () => {
+  const fetchFn = scriptedFetch([reply(401, { error: "You're signed out. Sign in again to carry on.", signed_out: true })]);
+  let notices = 0;
+  const boxes = [{ innerHTML: "before" }];
+  const running = createRunningOrder({
+    url: URLS.running_order_items, containers: boxes, fetchFn, render: () => "x",
+    onSignedOut: () => { notices += 1; },
+  });
+  await running.look({ table: 4 });
+  await running.refresh();
+  await running.look({ table: 5 });
+  assert.equal(fetchFn.calls.length, 1);
+  assert.equal(notices, 1);
+  assert.equal(boxes[0].innerHTML, "before", "the last order stays under the notice");
+});
+
+test("clearing the table drops an answer still on its way for it", async () => {
+  let release;
+  const rig = panelRig(() => new Promise((resolve) => { release = resolve; }));
+  const looked = rig.running.look({ table: 4 });
+  await rig.running.look(null);
+  release(reply(200, { order_id: 8 }));
+  assert.equal(await looked, null);
+  assert.equal(rig.boxes[0].innerHTML, SELECT_TABLE_HTML);
+});
+
 test("an order that will not load offers a retry", async () => {
   const rig = panelRig(scriptedFetch([networkDown()]));
   await rig.running.look({ table: 4 });

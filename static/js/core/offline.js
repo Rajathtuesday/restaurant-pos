@@ -26,11 +26,19 @@
  * id as the online attempt it stands in for, so a payment the server took
  * before the connection dropped is answered, never counted twice.
  *
+ * Signed out when the connection comes back (the session ended, or the
+ * till was signed out in another tab) is not a refusal: the replay stops,
+ * everything stays queued, the page's notice says to sign in, and the next
+ * replay after signing in sends it all. /create-order/ answers a signed-out
+ * till 401, and the order queue used to read that as "refused" and drop
+ * the saved order (28 Nov 2026).
+ *
  * Storage is behind a tiny interface (add, all, remove) so the queues are
  * tested in node with memoryStore(); the browser uses indexedDbStore().
  */
 
 import { newRequestId } from "./request_id.js";
+import { showSignedOut, signedOut } from "./signed_out.js";
 
 const DB_NAME = "rasova_offline";
 const DB_VERSION = 2; // v2 added the offline_payments store
@@ -114,7 +122,9 @@ function jsonHeaders(csrf) {
   return { "Content-Type": "application/json", "X-CSRFToken": csrf() };
 }
 
-export function createOrderQueue({ store, fetchFn, csrf, ui, isOnline, onChange = () => {}, newId = newRequestId }) {
+export function createOrderQueue({
+  store, fetchFn, csrf, ui, isOnline, onChange = () => {}, newId = newRequestId, onSignedOut = () => showSignedOut(),
+}) {
   let flushing = false;
   return {
     async add(payload) {
@@ -154,6 +164,10 @@ export function createOrderQueue({ store, fetchFn, csrf, ui, isOnline, onChange 
             });
           } catch (connectionDropped) {
             break; // the rest stays queued for the next 'online' or page load
+          }
+          if (signedOut(created)) {
+            onSignedOut();
+            break; // kept: replayed after signing in, never dropped as "refused"
           }
 
           let data;
@@ -199,7 +213,9 @@ export function createOrderQueue({ store, fetchFn, csrf, ui, isOnline, onChange 
   };
 }
 
-export function createPaymentQueue({ store, fetchFn, csrf, ui, isOnline, onChange = () => {}, newId = newRequestId }) {
+export function createPaymentQueue({
+  store, fetchFn, csrf, ui, isOnline, onChange = () => {}, newId = newRequestId, onSignedOut = () => showSignedOut(),
+}) {
   let flushing = false;
   return {
     /* requestId: the id the online attempt was sent with, when there was
@@ -235,6 +251,10 @@ export function createPaymentQueue({ store, fetchFn, csrf, ui, isOnline, onChang
             });
           } catch (connectionDropped) {
             break; // never guess whether a payment we could not confirm went through
+          }
+          if (signedOut(paid)) {
+            onSignedOut();
+            break; // money: kept, and replayed against its own order after signing in
           }
 
           let data;

@@ -303,7 +303,10 @@ lose nothing, duplicate nothing".
 - The service worker (`static/sw.js`) keeps pages and their files: hashed static files
   cache-first, unhashed ones network-first, app pages network-first with the kept copy as
   the fallback; it pre-warms `/dashboard/`, `/billing/`, `/kitchen/` on install. `/api/`,
-  admin and writes are never touched. No Background Sync (unreliable in the Android
+  admin and writes are never touched. What a page's script asks for (kitchen tickets, the
+  floor, an order, a receipt) is always from the network, never an old copy shown as live;
+  only an answer the server marks `X-Rasova-Offline: keep` is kept (a dish's options, so
+  billing adds a dish with options offline: `core/offline_copy.py`). No Background Sync (unreliable in the Android
   WebView): the page replays the queues itself.
 - Two IndexedDB queues (`static/js/core/offline.js`): new orders, and cash payments.
   A refused order is dropped with a message; a payment is money, only ever replayed

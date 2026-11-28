@@ -1,9 +1,14 @@
+import json
+import re
 import time
 import logging
+from urllib.parse import urlsplit
 
 from django.conf import settings
-from django.shortcuts import render
+from django.http import JsonResponse
+from django.shortcuts import render, resolve_url
 from tenants.models import Tenant
+from . import offline_copy
 from .public_pages import PUBLIC_PATHS
 from .utils import visitor_used_https
 from .tenant_context import set_current_tenant_outlet, clear_current_tenant_outlet
@@ -256,8 +261,93 @@ class NoStoreForAuthenticatedResponsesMiddleware:
         if request.user.is_authenticated:
             response["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
         if request.path.startswith("/" + settings.ADMIN_URL):
-            response["X-Rasova-Offline"] = "never"
+            response[offline_copy.HEADER] = offline_copy.NEVER
         return response
+
+
+SIGNED_OUT = "You're signed out. Sign in again to carry on."
+
+
+def from_a_script(request):
+    """True when a page's script sent the request, not the browser opening
+    a page. Browsers say so themselves in Sec-Fetch-Dest: "empty" for
+    fetch() and XMLHttpRequest, "document" or "iframe" for a page.
+    X-Requested-With, or an Accept of JSON without HTML, covers a client
+    that sends no Sec-Fetch headers."""
+    headers = request.headers
+    if headers.get("Sec-Fetch-Dest") == "empty":
+        return True
+    if headers.get("X-Requested-With") == "XMLHttpRequest":
+        return True
+    accept = headers.get("Accept", "")
+    return "application/json" in accept and "text/html" not in accept
+
+
+class SignedOutScriptMiddleware:
+    """
+    A page's script that asks after its session ended is told so: 401 and
+    {"error": ..., "signed_out": true}, not a redirect to the sign-in page.
+
+    Why (28 Nov 2026): one sign-in covers every tab and every restaurant
+    address in a browser (SESSION_COOKIE_DOMAIN), so signing out in one tab
+    signs out the kitchen screen in another. Its scripts followed the
+    redirect and got the sign-in page instead of data: the notification
+    badge and the dashboard numbers said nothing and went on asking once a
+    minute for hours, and the boards showed "Please sign in again." where
+    the tickets were. A 401 is an answer every script can read: the page
+    shows one notice (static/js/core/signed_out.js) and the live screens
+    stop asking (static/js/core/live_feed.js).
+
+    Only a signed-out visitor sent to the sign-in page is answered this
+    way: a signed-in person turned away by a check is not signed out, and
+    the browser opening a page still gets the sign-in page. Last in
+    MIDDLEWARE, under RequestLoggingMiddleware, so the log line shows the
+    401 that was sent.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        if (response.status_code in (301, 302, 303, 307, 308)
+                and not getattr(getattr(request, "user", None), "is_authenticated", False)
+                and urlsplit(response.get("Location", "")).path == urlsplit(resolve_url(settings.LOGIN_URL)).path
+                and from_a_script(request)):
+            answer = JsonResponse({"error": SIGNED_OUT, "signed_out": True}, status=401)
+            answer.signed_out = True        # RequestLoggingMiddleware: an ordinary answer, not a warning
+            return answer
+        return response
+
+
+# The words a refusal gave, for the log line: one line, at most this long.
+_REASON_MAX = 200
+_NOT_ONE_LINE = re.compile(r"[\x00-\x1f\x7f\s]+")
+
+
+def refusal_words(response):
+    """What a 4xx JSON answer said to the person ({"error": ...}, or
+    "message" or "detail"), on one line, or None. Without it a log line
+    said "POST /pay/89564/ 400" and the reason had to be worked out from
+    the answer's size in bytes (28 Nov 2026). Control characters and line
+    breaks become spaces, so words that carry what someone typed cannot
+    start a line of their own in the log."""
+    if not 400 <= response.status_code < 500 or response.status_code == 404:
+        return None
+    if getattr(response, "streaming", False) or "json" not in response.get("Content-Type", ""):
+        return None
+    if len(response.content) > 4096:
+        return None
+    try:
+        data = json.loads(response.content)
+    except ValueError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    words = next((data[k] for k in ("error", "message", "detail") if isinstance(data.get(k), str) and data[k].strip()), None)
+    if words is None:
+        return None
+    words = _NOT_ONE_LINE.sub(" ", words).strip()
+    return words if len(words) <= _REASON_MAX else words[:_REASON_MAX - 1] + "…"
 
 
 class RequestLoggingMiddleware:
@@ -287,17 +377,23 @@ class RequestLoggingMiddleware:
             tenant_name = getattr(getattr(request, "tenant", None), "name", "–")
 
         status = response.status_code
-        level = logging.WARNING if status >= 400 else logging.INFO
+        # The "you're signed out" 401 replaced a redirect to the sign-in page
+        # (SignedOutScriptMiddleware) and is as ordinary as the redirect was,
+        # so not a warning. Any other 401 (a webhook's bad signature) is.
+        ordinary = getattr(response, "signed_out", False)
+        level = logging.WARNING if status >= 400 and not ordinary else logging.INFO
+        reason = refusal_words(response)
 
         request_logger.log(
             level,
-            "%s %s %s  %dms  user=%s  tenant=%s",
+            "%s %s %s  %dms  user=%s  tenant=%s" + ("  reason=%s" if reason else ""),
             request.method,
             request.path,
             status,
             duration_ms,
             username,
             tenant_name,
+            *((json.dumps(reason, ensure_ascii=False),) if reason else ()),
         )
 
         return response

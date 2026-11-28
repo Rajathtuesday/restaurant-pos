@@ -3,9 +3,11 @@
  *
  * The server sends each outlet's block ready to show (accounts.dashboard_tiles
  * .today_blocks: the money already written as rupees, the alerts already in
- * words), so this only puts it on the page. Only the newest answer is drawn,
- * and a failed refresh leaves the numbers as they were and says so.
+ * words), so this only puts it on the page. Which answer is drawn, and what
+ * a sign-out shows, is core/live_feed.js, the reader every live screen
+ * shares; a failed refresh leaves the numbers as they were and says so.
  */
+import { createLiveFeed } from "../core/live_feed.js";
 import { esc } from "../order_edit.js";
 
 export function alertsHtml(alerts) {
@@ -41,22 +43,20 @@ export function drawBlock(card, block) {
  * Asks for today's numbers and hands them to `draw`. `say` is the "updated"
  * line. Returns true when it drew.
  */
-export function createTodayRefresh({ fetchFn, url, draw, say, now = () => new Date() }) {
-  let asked = 0;
-  return async function refresh() {
-    const mine = ++asked;
-    try {
-      const response = await fetchFn(url, { headers: { Accept: "application/json" } });
-      const data = await response.json();
-      if (!response.ok || !Array.isArray(data.today)) throw new Error("not today");
-      if (mine !== asked) return false;
-      draw(data.today);
+export function createTodayRefresh({ fetchFn, url, draw, say, now = () => new Date(), ...feedOptions }) {
+  const feed = createLiveFeed({
+    ...feedOptions,
+    fetchFn,
+    address: url,
+    read: (d) => {
+      if (!d || !Array.isArray(d.today)) throw new Error("not today");
+      return d.today;
+    },
+    onData: (today) => {
+      draw(today);
       say(`Updated ${clock(now())}`);
-      return true;
-    } catch (failed) {
-      if (mine !== asked) return false;
-      say("Could not update: these are the last numbers");
-      return false;
-    }
-  };
+    },
+    onFailure: () => say("Could not update: these are the last numbers"),
+  });
+  return feed.refresh;
 }

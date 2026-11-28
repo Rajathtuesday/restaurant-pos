@@ -126,15 +126,55 @@ def get_kitchen_data(user, station_name=None):
     return data
 
 
+# A dish's way through the kitchen, in order. "voided", and the two states
+# before the kitchen ("review": a guest's QR dish waiting for staff;
+# "pending": on the order, not sent yet), are off this path.
+_KITCHEN_STEPS = ("sent", "preparing", "ready", "served")
+
+# What a dish must be for each step to be taken now.
+_COMES_FROM = {"preparing": "sent", "ready": "preparing", "served": "ready"}
+
+
+def _should_move(item, step):
+    """True when the dish moves to `step` now; False when it is already
+    there or past it, which is answered as done; KitchenStateError, in
+    kitchen words, when it cannot get there from where it is.
+
+    Why (28 Nov 2026): a cook's phone on a slow link was a few seconds
+    behind, and two more taps on Ready for a whisky that was already ready
+    each got "Invalid state constraint: Item is not 'preparing'." The cook
+    wanted the dish ready, and it was. A second screen, or a Bump crossing
+    a Ready on the way, is the same. Nothing is written for a step already
+    taken: no second "is ready" message, no second change to the table."""
+    if item.status == _COMES_FROM[step]:
+        return True
+    if item.status in _KITCHEN_STEPS and _KITCHEN_STEPS.index(item.status) >= _KITCHEN_STEPS.index(step):
+        return False
+    raise KitchenStateError(_why_not(item, step))
+
+
+def _why_not(item, step):
+    name = item.menu_item.name if item.menu_item_id else "This dish"
+    if item.status == "voided":
+        return f"{name} was cancelled: there is nothing to do for it."
+    if item.status in ("review", "pending"):
+        return f"{name} has not been sent to the kitchen yet."
+    if step == "ready":                         # still "sent"
+        return f"Tap Start Prep on {name} first."
+    return f"{name} is not ready yet."          # serving one still being made
+
+
 @transaction.atomic
 def set_item_preparing(user, item_id):
     """
-    Marks a kitchen item as 'preparing'.
+    Marks a kitchen item as 'preparing'. True when it moved, False when it
+    was already being made or past that (_should_move).
     """
     lock_order_of_item(user, item_id)  # order before line, see row_locks
     item = (
         OrderItem.objects
-        .select_for_update()
+        .select_related("menu_item")
+        .select_for_update(of=("self",))
         .get(
             id=item_id,
             order__tenant=user.tenant,
@@ -142,24 +182,26 @@ def set_item_preparing(user, item_id):
         )
     )
 
-    if item.status != "sent":
-        raise KitchenStateError("Invalid state constraint: Item is not 'sent'.")
+    if not _should_move(item, "preparing"):
+        return False
 
     item.status = "preparing"
     item.save(update_fields=["status"])
-    return item
+    return True
 
 
 @transaction.atomic
 def set_item_ready(user, item_id):
     """
     Marks an item as 'ready', updates table statuses, and pings notifications.
+    True when it moved, False when it was already ready or served
+    (_should_move).
     """
     lock_order_of_item(user, item_id)  # order before line, see row_locks
     item = (
         OrderItem.objects
-        .select_related("order")
-        .select_for_update()
+        .select_related("order", "menu_item")
+        .select_for_update(of=("self",))
         .get(
             id=item_id,
             order__tenant=user.tenant,
@@ -167,8 +209,8 @@ def set_item_ready(user, item_id):
         )
     )
 
-    if item.status != "preparing":
-        raise KitchenStateError("Invalid state constraint: Item is not 'preparing'.")
+    if not _should_move(item, "ready"):
+        return False
 
     item.status = "ready"
     item.save(update_fields=["status"])
@@ -205,19 +247,20 @@ def set_item_ready(user, item_id):
         message=f"{item.menu_item.name} is ready"
     )
 
-    return item
+    return True
 
 
 @transaction.atomic
 def set_item_served(user, item_id):
     """
     Marks an item as 'served' and dynamically updates the table state.
+    True when it moved, False when it was already served (_should_move).
     """
     lock_order_of_item(user, item_id)  # order before line, see row_locks
     item = (
         OrderItem.objects
-        .select_related("order")
-        .select_for_update()
+        .select_related("order", "menu_item")
+        .select_for_update(of=("self",))
         .get(
             id=item_id,
             order__tenant=user.tenant,
@@ -225,14 +268,14 @@ def set_item_served(user, item_id):
         )
     )
 
-    if item.status != "ready":
-        raise KitchenStateError("Item not ready yet!")
+    if not _should_move(item, "served"):
+        return False
 
     item.status = "served"
     item.save(update_fields=["status"])
 
     update_table_state(item.order)
-    return item
+    return True
 
 
 @transaction.atomic

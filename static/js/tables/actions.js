@@ -4,12 +4,19 @@
  * accept) what a guest ordered by QR, dish by dish, add or rename a table.
  *
  * `api` (core/http.js) shows the server's refusal, or "you are offline",
- * as a toast and throws; an action then simply stops and the floor stays
- * as it was. While an action is on its way a second tap on the same thing
- * is ignored. Everything it needs comes in as an argument, so node can
- * test it with fakes.
+ * as a toast and throws; an action then stops, claims no success, and the
+ * floor is asked for again: a refusal most often means the floor on screen
+ * was behind (another phone already billed or cleaned that table), and
+ * left as it was the same stale tap comes again (28 Nov 2026, the kitchen
+ * board). While an action is on its way a second tap on the same thing is
+ * ignored. Everything it needs comes in as an argument, so node can test
+ * it with fakes.
  */
 import { withId } from "../billing/urls.js";
+
+/* Thrown when the waiter backs out of a sheet: nothing was asked of the
+   server, so nothing on the floor can be behind. */
+class BackedOut extends Error {}
 
 const whole = (value) => {
   const n = Number(value);
@@ -27,7 +34,9 @@ export function createTableActions({ api, ui, urls, refresh, go, closeSheets = (
       await work();
       return true;
     } catch (shown) {
-      return false;                       // api has shown the error
+      // api has shown the refusal; the floor was likely behind.
+      if (!(shown instanceof BackedOut)) await refresh();
+      return false;
     } finally {
       busy.delete(key);
     }
@@ -128,7 +137,7 @@ export function createTableActions({ api, ui, urls, refresh, go, closeSheets = (
       if (!id) return Promise.resolve(false);
       return once("refuse:" + id, async () => {
         const answered = await ask({ id, name: item.name, quantity: whole(item.quantity) || 1, status: "review" });
-        if (!answered) throw new Error("backed out");
+        if (!answered) throw new BackedOut();
         await refresh();
       });
     },

@@ -84,7 +84,7 @@ delegate(document.body, {
    for the list itself when it is done), and while the tab is hidden. */
 function poll() {
   if (actions.busy() || OrderEdit.sheetOpen() || document.hidden) return;
-  loader.refresh();
+  loader.poll();
 }
 
 onReady(() => {

@@ -278,6 +278,27 @@ test("waiter list: reloads only when the list changed, never while hidden or on 
   assert.equal(reloads, 1);
 });
 
+test("waiter list: signed out, the notice once and no more asking (the sign-in page has no list)", async () => {
+  // 28 Nov 2026: the sign-in page came back, had no list, and the calls on
+  // screen simply froze with nothing said.
+  const doc = { hidden: false, querySelector: () => ({ innerHTML: "same" }) };
+  const asked = [];
+  const fetchFn = async (url, options) => {
+    asked.push(options.headers);
+    return { ok: false, status: 401, text: async () => "" };
+  };
+  let notices = 0;
+  const check = watchList({
+    doc, fetchFn, url: "/waiter/", parse, reload: () => assert.fail("no reload"), every: () => {},
+    onSignedOut: () => { notices += 1; },
+  });
+  assert.equal(await check(), false);
+  assert.equal(await check(), false);
+  assert.equal(asked.length, 1);
+  assert.equal(notices, 1);
+  assert.equal(asked[0]["X-Requested-With"], "XMLHttpRequest", "said to be a script, so the server answers 401");
+});
+
 /* ---- the shifts clock ---------------------------------------------------------- */
 
 test("shifts clock: drawn at once and every second", () => {

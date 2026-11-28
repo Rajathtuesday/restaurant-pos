@@ -71,6 +71,36 @@ test("loader: a refusal and the connection down are failures, never an empty boa
   assert.equal(seen.orders.length, 1);
 });
 
+test("loader: a newer answer is drawn while an even newer read is still out", async () => {
+  const waiting = [];
+  const seen = [];
+  const loader = createOrdersLoader({
+    fetchFn: () => new Promise((resolve) => waiting.push(resolve)), url: "/x/",
+    onOrders: (d) => seen.push(d.orders[0].id), onFailure: () => {},
+  });
+  const a = loader.refresh();
+  const b = loader.refresh();
+  waiting[0](reply(200, { orders: [order(1)] }));
+  assert.equal(await a, true);
+  waiting[1](reply(200, { orders: [order(2)] }));
+  assert.equal(await b, true);
+  assert.deepEqual(seen, [1, 2]);
+});
+
+test("loader: signed out, the notice is shown once and the board stops asking", async () => {
+  const signedOut = [];
+  const fetchFn = scriptedFetch([reply(401, { error: "You're signed out. Sign in again to carry on.", signed_out: true })]);
+  const loader = createOrdersLoader({
+    fetchFn, url: "/x/", onOrders: () => assert.fail("nothing to draw"), onFailure: () => assert.fail("the notice says it"),
+    onSignedOut: () => signedOut.push(true),
+  });
+  await loader.refresh();
+  await loader.poll();
+  assert.equal(fetchFn.calls.length, 1);
+  assert.deepEqual(signedOut, [true]);
+  assert.equal(fetchFn.calls[0].options.credentials, "same-origin");
+});
+
 test("loader: a late answer to an older question is dropped", async () => {
   let releaseFirst;
   const answers = [new Promise((r) => { releaseFirst = r; }), Promise.resolve(reply(200, { orders: [order(2)] }))];

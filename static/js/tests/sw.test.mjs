@@ -16,7 +16,9 @@ import vm from "node:vm";
 const SOURCE = readFileSync(new URL("../../sw.js", import.meta.url), "utf8");
 const ORIGIN = "https://spice.rasova.net";
 
-function worker({ network = "down", kept = {}, headers = {} } = {}) {
+// `kept`: what the page cache holds (pages, and what the old worker kept
+// beside them); `keptData`: the data cache (answers marked keep).
+function worker({ network = "down", kept = {}, keptData = {}, headers = {}, cacheNames = [] } = {}) {
   const handlers = {};
   const self = {
     location: new URL(ORIGIN),
@@ -26,6 +28,10 @@ function worker({ network = "down", kept = {}, headers = {} } = {}) {
   };
   const fetched = [];
   const stored = [];
+  const deleted = [];
+  const keyOf = (request) => (typeof request === "string" ? new URL(request, ORIGIN).href : request.url);
+  const matchIn = (store) => async (request) => (store[keyOf(request)] ? new Response(store[keyOf(request)]) : undefined);
+  const matchKept = async (request) => (await matchIn(kept)(request)) || matchIn(keptData)(request);
   const context = {
     self,
     location: self.location,
@@ -39,28 +45,36 @@ function worker({ network = "down", kept = {}, headers = {} } = {}) {
       return new Response("fresh", { status: 200, headers: headers[url] || {} });
     },
     caches: {
-      match: async (request) => {
-        const url = typeof request === "string" ? new URL(request, ORIGIN).href : request.url;
-        return kept[url] ? new Response(kept[url]) : undefined;
-      },
-      open: async () => ({
+      match: matchKept,
+      open: async (name) => ({
+        match: matchIn(String(name).endsWith("-data") ? keptData : kept),
         put: async (request) => { stored.push(typeof request === "string" ? request : request.url); },
         add: async () => {}, addAll: async () => {},
+        name,
       }),
-      keys: async () => [],
-      delete: async () => true,
+      keys: async () => cacheNames,
+      delete: async (name) => { deleted.push(name); return true; },
     },
   };
   vm.runInNewContext(SOURCE, context);
 
   // What the handler answers for one request: "browser" when it leaves the
   // request to the browser (no respondWith), else the Response it settles on.
-  async function ask(url, { destination = "", method = "GET" } = {}) {
+  // A page the browser opens is a navigation; everything else is a script's
+  // or an element's request (fetch() is "cors").
+  async function ask(url, { destination = "", method = "GET", mode } = {}) {
     let answer = "browser";
-    handlers.fetch({ request: { url, method, destination }, respondWith: (promise) => { answer = promise; } });
+    const how = mode || (destination === "document" || destination === "iframe" ? "navigate" : "cors");
+    handlers.fetch({ request: { url, method, destination, mode: how }, respondWith: (promise) => { answer = promise; } });
     return answer === "browser" ? answer : await answer;
   }
-  return { ask, fetched, stored };
+
+  async function activate() {
+    let done;
+    handlers.activate({ waitUntil: (promise) => { done = promise; } });
+    await done;
+  }
+  return { ask, activate, fetched, stored, deleted };
 }
 
 test("another host's script is left to the browser, never answered with nothing", async () => {
@@ -106,4 +120,67 @@ test("a page the server marks not for offline is never kept; an app page still i
   assert.equal(await (await sw.ask(page, { destination: "document" })).text(), "fresh");
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.deepEqual(sw.stored, [page]);
+});
+
+/* ---- a script's data (28 Nov 2026) ------------------------------------------
+ * Kept like a page, an old answer came back as if live whenever a read
+ * failed: a kitchen board showed old tickets with no "Sync Failed", and a
+ * read with no copy got the billing page instead of data. */
+
+const TICKETS = `${ORIGIN}/kitchen-data/`;
+const OPTIONS = `${ORIGIN}/menu/item-modifiers/12/`;
+
+test("offline, the kitchen's tickets are a network error, never an old copy", async () => {
+  const sw = worker({ kept: { [TICKETS]: '{"kots": ["from an hour ago"]}' } });
+  const answer = await sw.ask(TICKETS);
+  assert.ok(answer instanceof Response);
+  assert.equal(answer.type, "error", "the board says Check the connection, not old tickets");
+});
+
+test("offline, a script's read with nothing kept is a network error, not the billing page", async () => {
+  const sw = worker({ kept: { [`${ORIGIN}/billing/`]: "<html>the billing page</html>" } });
+  for (const url of [TICKETS, `${ORIGIN}/tables-data/`, `${ORIGIN}/thermal-receipt/9/`]) {
+    const answer = await sw.ask(url);
+    assert.equal(answer.type, "error", url);
+  }
+});
+
+test("online, a script's answer is not kept unless the server marks it keep", async () => {
+  const sw = worker({ network: "up" });
+  assert.equal(await (await sw.ask(TICKETS)).text(), "fresh");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(sw.stored, []);
+});
+
+test("a dish's options, marked keep, are kept and handed back offline (billing works offline)", async () => {
+  const online = worker({ network: "up", headers: { [OPTIONS]: { "X-Rasova-Offline": "keep" } } });
+  assert.equal(await (await online.ask(OPTIONS)).text(), "fresh");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(online.stored, [OPTIONS]);
+
+  const offline = worker({ keptData: { [OPTIONS]: '{"groups": []}' } });
+  assert.equal(await (await offline.ask(OPTIONS)).text(), '{"groups": []}');
+});
+
+test("pages are still kept online and served offline, with the billing page for a kitchen page not kept", async () => {
+  const online = worker({ network: "up" });
+  await online.ask(`${ORIGIN}/kitchen/`, { destination: "document" });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(online.stored, [`${ORIGIN}/kitchen/`]);
+
+  const offline = worker({ kept: { [`${ORIGIN}/billing/`]: "billing page" } });
+  assert.equal(await (await offline.ask(`${ORIGIN}/kitchen/`, { destination: "document" })).text(), "billing page");
+});
+
+test("an image on our own address is kept as before, not treated as data", async () => {
+  const sw = worker({ network: "up" });
+  await sw.ask(`${ORIGIN}/media/menu/paneer.jpg`, { destination: "image", mode: "no-cors" });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(sw.stored, [`${ORIGIN}/media/menu/paneer.jpg`]);
+});
+
+test("a new version clears the old version's caches, the data kept beside pages with them", async () => {
+  const sw = worker({ cacheNames: ["rasova-v8-static", "rasova-v8-menu", "rasova-v9-static", "rasova-v9-menu", "rasova-v9-data", "other-app"] });
+  await sw.activate();
+  assert.deepEqual(sw.deleted, ["rasova-v8-static", "rasova-v8-menu"]);
 });

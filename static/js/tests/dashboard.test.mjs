@@ -75,6 +75,37 @@ test("a failed refresh keeps the numbers and says they are the last ones", async
   }
 });
 
+test("a newer answer is drawn while an even newer refresh is still out", async () => {
+  const waiting = [];
+  const drawn = [];
+  const refresh = createTodayRefresh({
+    fetchFn: () => new Promise((resolve) => waiting.push(resolve)), url: "/m",
+    draw: (b) => drawn.push(b[0].revenue), say: () => {},
+  });
+  const tap = refresh();          // the refresh button
+  const minute = refresh();       // the minute's refresh, before the first came back
+  waiting[0](reply(200, { today: [{ ...BLOCK, revenue: "first" }] }));
+  assert.equal(await tap, true);
+  waiting[1](reply(200, { today: [{ ...BLOCK, revenue: "second" }] }));
+  assert.equal(await minute, true);
+  assert.deepEqual(drawn, ["first", "second"]);
+});
+
+test("signed out, the numbers stop refreshing and the notice is shown once", async () => {
+  const signedOut = [];
+  const said = [];
+  let asked = 0;
+  const refresh = createTodayRefresh({
+    fetchFn: async () => { asked += 1; return reply(401, { error: "You're signed out. Sign in again to carry on.", signed_out: true }); },
+    url: "/m", draw: () => assert.fail("nothing to draw"), say: (w) => said.push(w), onSignedOut: () => signedOut.push(true),
+  });
+  assert.equal(await refresh(), false);
+  assert.equal(await refresh(), false);
+  assert.equal(asked, 1);
+  assert.deepEqual(signedOut, [true]);
+  assert.deepEqual(said, [], "no \"last numbers\" line under the notice");
+});
+
 test("only the newest answer is drawn", async () => {
   let release;
   const answers = [

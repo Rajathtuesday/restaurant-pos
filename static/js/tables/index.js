@@ -188,5 +188,5 @@ delegate(document.body, {
 
 onReady(() => {
   floor.refresh();
-  setInterval(() => floor.refresh(), data.poll_ms || 5000);
+  setInterval(() => floor.poll(), data.poll_ms || 5000);
 });

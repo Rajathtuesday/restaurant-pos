@@ -7,10 +7,13 @@
    from the page itself on 'online'/page-load, not via a sync event.)
    ============================================================ */
 
-// v8 (27 Nov 2026): clears admin pages kept under an ADMIN_URL other than /admin/.
-const CACHE_VERSION = 'rasova-v8';
+// v9 (28 Nov 2026): clears the live data (kitchen tickets, the floor, orders,
+// receipts) that v8 kept beside the pages and handed back as if live.
+const CACHE_VERSION = 'rasova-v9';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const MENU_CACHE    = `${CACHE_VERSION}-menu`;
+// A script's answer the server marks X-Rasova-Offline: keep (core/offline_copy.py).
+const DATA_CACHE    = `${CACHE_VERSION}-data`;
 
 /* Assets to cache on install */
 const STATIC_ASSETS = [
@@ -128,7 +131,7 @@ self.addEventListener('activate', event => {
         caches.keys().then(keys =>
             Promise.all(
                 keys
-                    .filter(k => k.startsWith('rasova-') && k !== STATIC_CACHE && k !== MENU_CACHE)
+                    .filter(k => k.startsWith('rasova-') && ![STATIC_CACHE, MENU_CACHE, DATA_CACHE].includes(k))
                     .map(k => caches.delete(k))
             )
         )
@@ -136,7 +139,7 @@ self.addEventListener('activate', event => {
     );
 });
 
-/* ── Fetch: cache-first for static, network-first for pages ── */
+/* ── Fetch: cache-first for static, network-first for pages, network for data ── */
 self.addEventListener('fetch', event => {
     const { request } = event;
     const url = new URL(request.url);
@@ -209,9 +212,40 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // App pages: network first, cache on success, serve cache when offline.
-    // A page the server marks X-Rasova-Offline: never (the admin's, at its
-    // secret address) is never kept.
+    // What a page's script asks for (the kitchen tickets, the floor, an
+    // order, today's numbers, a receipt to print, a dish's options): the
+    // network, every time. Kept like a page, an old answer came back as if
+    // live whenever a read failed: a kitchen board showed the tickets from
+    // whenever the copy was made with no "Sync Failed", a receipt could
+    // print an old bill, and a read with no copy got the billing page
+    // instead of data (28 Nov 2026). Only an answer the server marks
+    // X-Rasova-Offline: keep (a dish's options, so billing can add a dish
+    // with options offline, core/offline_copy.py) is kept, and handed back
+    // when the network fails. Anything else offline is a network error,
+    // which the page's script reads as "Check the connection." Images are
+    // not data: they are kept as before.
+    if (request.mode !== 'navigate' && request.destination !== 'image') {
+        event.respondWith(
+            fetch(request)
+                .then(response => {
+                    if (response.ok && response.headers.get('X-Rasova-Offline') === 'keep') {
+                        const clone = response.clone();
+                        caches.open(DATA_CACHE).then(c => c.put(request, clone));
+                    }
+                    return response;
+                })
+                .catch(() =>
+                    caches.open(DATA_CACHE)
+                        .then(c => c.match(request))
+                        .then(kept => kept || Response.error())
+                )
+        );
+        return;
+    }
+
+    // App pages (the browser opening one): network first, cache on success,
+    // serve cache when offline. A page the server marks X-Rasova-Offline:
+    // never (the admin's, at its secret address) is never kept.
     const isBillingOrKitchen = url.pathname.startsWith('/billing') || url.pathname.startsWith('/kitchen');
     event.respondWith(
         fetch(request, { credentials: 'include' })

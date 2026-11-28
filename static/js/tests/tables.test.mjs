@@ -191,7 +191,7 @@ test("the floor is fetched and handed over", async () => {
   assert.equal(rig.loader.find(99), undefined);
 });
 
-test("a failure says why: the server's message, a lost session, an error page, no connection", async () => {
+test("a failure says why: the server's message, a page that is not Rasova's, an error page, no connection", async () => {
   const rig = loaderRig([
     reply(500, { error: "tables_data_failed", message: "Could not load table data. Please try again." }),
     reply(200, undefined),
@@ -199,8 +199,38 @@ test("a failure says why: the server's message, a lost session, an error page, n
     networkDown(),
   ]);
   for (let i = 0; i < 4; i += 1) assert.equal(await rig.loader.refresh(), false);
-  assert.deepEqual(rig.failed, ["Could not load table data. Please try again.", "Please sign in again.", "Server error (502).", "Check the connection."]);
+  assert.deepEqual(rig.failed, ["Could not load table data. Please try again.", "Check the connection.", "Server error (502).", "Check the connection."]);
   assert.deepEqual(rig.drawn, []);
+});
+
+test("signed out, the floor stops asking and the notice is shown once", async () => {
+  const signedOut = [];
+  const fetchFn = scriptedFetch([reply(401, { error: "You're signed out. Sign in again to carry on.", signed_out: true })]);
+  const loader = createFloorLoader({
+    fetchFn, url: "/tables-data/", onTables: () => assert.fail("nothing to draw"),
+    onFailure: () => assert.fail("the notice says it"), onSignedOut: () => signedOut.push(true),
+  });
+  await loader.refresh();
+  await loader.refresh();
+  await loader.poll();
+  assert.equal(fetchFn.calls.length, 1);
+  assert.deepEqual(signedOut, [true]);
+});
+
+test("a newer floor is drawn while an even newer read is still out", async () => {
+  const drawn = [];
+  const waiting = [];
+  const loader = createFloorLoader({
+    fetchFn: () => new Promise((resolve) => waiting.push(resolve)), url: "/tables-data/",
+    onTables: (t) => drawn.push(t[0].status), onFailure: () => {},
+  });
+  const afterAction = loader.refresh();
+  const poll = loader.refresh();
+  waiting[0](reply(200, { tables: [table(4, "free")] }));
+  assert.equal(await afterAction, true);
+  waiting[1](reply(200, { tables: [table(4, "occupied")] }));
+  assert.equal(await poll, true);
+  assert.deepEqual(drawn, ["free", "occupied"]);
 });
 
 test("an older answer arriving after a newer one is not drawn", async () => {
@@ -313,11 +343,15 @@ test("Mark Clean frees the table, closes the sheet and redraws the floor", async
   assert.deepEqual([r.seen.closed, r.seen.refreshed], [1, 1]);
 });
 
-test("offline or refused, nothing is redrawn and no success is claimed", async () => {
-  const r = rig([new Error("Offline")]);
-  assert.equal(await r.actions.clean(4), false);
-  assert.deepEqual(r.ui.calls.toast, []);
-  assert.deepEqual([r.seen.closed, r.seen.refreshed], [0, 0]);
+test("offline or refused, no success is claimed, the sheet stays, and the floor is asked for again", async () => {
+  // The floor being behind is the usual reason for a refusal: drawn again,
+  // the stale button that was tapped is gone (28 Nov 2026).
+  for (const failure of [new Error("Offline"), refused()]) {
+    const r = rig([failure]);
+    assert.equal(await r.actions.clean(4), false);
+    assert.deepEqual(r.ui.calls.toast, []);
+    assert.deepEqual([r.seen.closed, r.seen.refreshed], [0, 1]);
+  }
 });
 
 test("Unmerge asks first, in the page's own dialog", async () => {
